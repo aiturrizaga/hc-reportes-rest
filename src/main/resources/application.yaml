@@ -1,0 +1,35 @@
+server:
+  port: ${PORT:8085}
+  servlet:
+    context-path: /${spring.application.name}
+spring:
+  application:
+    name: buenaventura-reportes
+  main:
+    banner-mode: off
+  jmx:
+    enabled: true
+  jpa:
+    show-sql: false
+    database: oracle
+    hibernate:
+      ddl-auto: none
+      naming:
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.Oracle10gDialect
+  datasource:
+    hikari:
+      connection-test-query: SELECT 1 FROM DUAL
+      minimum-idle: 5
+      maximum-pool-size: 10
+      pool-name: ventaDS
+      auto-commit: true
+      idle-timeout: 600000
+    driver-class-name: oracle.jdbc.driver.OracleDriver
+    url: jdbc:oracle:thin:@23.254.165.3:1521:XE
+    username: venta_consorcio
+    password: venta
+    type: com.zaxxer.hikari.HikariDataSource
