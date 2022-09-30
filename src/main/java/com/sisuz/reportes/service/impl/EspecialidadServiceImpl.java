@@ -1,6 +1,6 @@
 package com.sisuz.reportes.service.impl;
 
-import com.sisuz.reportes.dto.request.EspecialidadByLabRequest;
+import com.sisuz.reportes.dto.request.EspecialidadFilterRequest;
 import com.sisuz.reportes.dto.response.EspecialidadReportResponse;
 import com.sisuz.reportes.dto.response.TableStructureDTO;
 import com.sisuz.reportes.repository.EspecialidadReportRepository;
@@ -31,9 +31,9 @@ public class EspecialidadServiceImpl implements EspecialidadService {
     }
 
     @Override
-    public TableStructureDTO obtenerAgrupadosPorLaboratorio(EspecialidadByLabRequest request) {
+    public TableStructureDTO obtenerAgrupadosPorLaboratorio(EspecialidadFilterRequest request) {
         List<TableStructureDTO.ColStructureDTO> columns = new ArrayList<>();
-        List<EspecialidadReportResponse> reports = getEspecialidadesReport(request);
+        List<EspecialidadReportResponse> reports = getEspecialidadesPorLaboratorioReport(request);
 
         columns.add(
                 TableStructureDTO.ColStructureDTO.builder()
@@ -99,12 +99,12 @@ public class EspecialidadServiceImpl implements EspecialidadService {
                                     .collect(Collectors.toList())
                                     .forEach(item -> {
                                         items.put("tu" + item.getMes(), item.getTotalUnidad());
-                                        items.put("tv" + item.getMes(), item.getTotalValor());
+                                        items.put("tv" + item.getMes(), "S/ " + item.getTotalValor());
                                         unidades.add(item.getTotalUnidad());
                                         valores.add(item.getTotalValor());
                                     });
                             items.put("totalUnidades", unidades.stream().reduce(0, Integer::sum));
-                            items.put("totalValores", valores.stream().reduce(BigDecimal.ZERO, BigDecimal::add));
+                            items.put("totalValores", "S/ " + valores.stream().reduce(BigDecimal.ZERO, BigDecimal::add));
                             source.add(items);
                         })
                 );
@@ -116,9 +116,9 @@ public class EspecialidadServiceImpl implements EspecialidadService {
     }
 
     @Override
-    public TableStructureDTO obtenerOtrasEspecialidades(EspecialidadByLabRequest request) {
+    public TableStructureDTO obtenerReporteEspecialidades(EspecialidadFilterRequest request) {
         List<TableStructureDTO.ColStructureDTO> columns = new ArrayList<>();
-        List<EspecialidadReportResponse> reports = getOtraEspecialidadesReport(request);
+        List<EspecialidadReportResponse> reports = getEspecialidadesReport(request);
 
         columns.add(
                 TableStructureDTO.ColStructureDTO.builder()
@@ -191,60 +191,108 @@ public class EspecialidadServiceImpl implements EspecialidadService {
 
         List<Map<String, Object>> source = new ArrayList<>();
         reports.stream()
+                .filter(distinctByKey(EspecialidadReportResponse::getCodigoProducto))
+                .collect(Collectors.toList())
+                .forEach(withCounter((i, data) -> {
+                            Map<String, Object> items = new LinkedHashMap<>();
+                            List<Integer> unidades = new ArrayList<>();
+                            List<BigDecimal> valores = new ArrayList<>();
+                            items.put("key", i);
+                            items.put("especialidad", data.getEspecialidad());
+                            items.put("codigoProducto", data.getCodigoProducto());
+                            items.put("descripcionProducto", data.getDescripcionProducto());
+                            reports.stream()
+                                    .filter(r -> r.getCodigoProducto().equalsIgnoreCase(data.getCodigoProducto()))
+                                    .collect(Collectors.toList())
+                                    .forEach(item -> {
+                                        items.put("tu" + item.getMes(), item.getTotalUnidad());
+                                        items.put("tv" + item.getMes(), "S/ " + item.getTotalValor());
+                                        unidades.add(item.getTotalUnidad());
+                                        valores.add(item.getTotalValor());
+                                    });
+                            items.put("totalUnidades", unidades.stream().reduce(0, Integer::sum));
+                            items.put("totalValores", "S/ " + valores.stream().reduce(BigDecimal.ZERO, BigDecimal::add));
+                            source.add(items);
+                        })
+                );
+
+        return TableStructureDTO.builder()
+                .columns(columns)
+                .dataSource(source)
+                .build();
+    }
+
+    @Override
+    public TableStructureDTO obtenerReservasEspecialidades(EspecialidadFilterRequest request) {
+        List<TableStructureDTO.ColStructureDTO> columns = new ArrayList<>();
+        List<EspecialidadReportResponse> reports = getReservasEspecialidadesReport(request);
+
+        columns.add(
+                TableStructureDTO.ColStructureDTO.builder()
+                        .id("especialidad")
+                        .title("Especialidad")
+                        .dataIndex("especialidad")
+                        .key("especialidad")
+                        .children(Collections.emptyList())
+                        .build()
+        );
+
+        columns.add(
+                TableStructureDTO.ColStructureDTO.builder()
+                        .id("fechaReserva")
+                        .title("Fecha Reserva")
+                        .dataIndex("fechaReserva")
+                        .key("fechaReserva")
+                        .children(Collections.emptyList())
+                        .build()
+        );
+
+        columns.add(
+                TableStructureDTO.ColStructureDTO.builder()
+                        .id("reservaSolicitada")
+                        .title("Reserva Solicitada")
+                        .dataIndex("reservaSolicitada")
+                        .key("reservaSolicitada")
+                        .children(Collections.emptyList())
+                        .build()
+        );
+        columns.add(
+                TableStructureDTO.ColStructureDTO.builder()
+                        .id("reservaPagada")
+                        .title("Reserva Pagada")
+                        .dataIndex("reservaPagada")
+                        .key("reservaPagada")
+                        .children(Collections.emptyList())
+                        .build()
+        );
+
+        List<Map<String, Object>> source = new ArrayList<>();
+        reports.stream()
                 .filter(distinctByKey(EspecialidadReportResponse::getEspecialidad))
                 .collect(Collectors.toList())
-                .forEach(esp -> {
-                    final Map<String, Object> header = new LinkedHashMap<>();
-                    List<Map<String, Object>> children = new ArrayList<>();
-                    reports.stream()
-                            .filter(res -> esp.getEspecialidad().equalsIgnoreCase(res.getEspecialidad()))
-                            .collect(Collectors.toList())
-                            .forEach(withCounter((i, data) -> {
+                .forEach(withCounter((i, res) -> {
+                            Map<String, Object> totalItem = new LinkedHashMap<>();
+                            reports.stream()
+                                    .filter(esp -> esp.getEspecialidad().equalsIgnoreCase(res.getEspecialidad()))
+                                    .collect(Collectors.toList())
+                                    .forEach(withCounter((j, data) -> {
                                         Map<String, Object> items = new LinkedHashMap<>();
-                                        List<Integer> unidades = new ArrayList<>();
-                                        List<BigDecimal> valores = new ArrayList<>();
-                                        if (i == 0) {
-                                            header.put("key", data.getCodigoProducto());
-                                            header.put("especialidad", data.getEspecialidad());
-                                            header.put("codigoProducto", data.getCodigoProducto());
-                                            header.put("descripcionProducto", data.getDescripcionProducto());
-                                        }
+                                        items.put("key", data.getKeyId());
+                                        items.put("especialidad", data.getEspecialidad());
+                                        items.put("fechaReserva", data.getMes());
+                                        items.put("reservaSolicitada", data.getReservaSolicitada());
+                                        items.put("reservaPagada", data.getReservaPagada());
+                                        source.add(items);
+                                    }));
+                            totalItem.put("key", String.format("%s_%d%d", res.getEspecialidad(), res.getTotalSolicitudes(), res.getTotalPagadas()));
+                            totalItem.put("especialidad", String.format("Total %s", res.getEspecialidad()));
+                            totalItem.put("fechaReserva", "");
+                            totalItem.put("reservaSolicitada", res.getTotalSolicitudes());
+                            totalItem.put("reservaPagada", res.getTotalPagadas());
+                            source.add(totalItem);
+                        })
+                );
 
-                                        items.put("key", data.getCodigoProducto());
-                                        items.put("especialidad", "");
-                                        items.put("codigoProducto", data.getCodigoProducto());
-                                        items.put("descripcionProducto", data.getDescripcionProducto());
-                                        reports.stream()
-                                                .filter(r -> (r.getCodigoProducto().equalsIgnoreCase(data.getCodigoProducto())))
-                                                .collect(Collectors.toList())
-                                                .forEach(item -> {
-                                                    unidades.add(item.getTotalUnidad());
-                                                    valores.add(item.getTotalValor());
-                                                    if (i == 0) {
-                                                        header.put("tu" + item.getMes(), item.getTotalUnidad());
-                                                        header.put("tv" + item.getMes(), item.getTotalValor());
-                                                        header.put("totalUnidades", unidades.stream().reduce(0, Integer::sum));
-                                                        header.put("totalValores", valores.stream().reduce(BigDecimal.ZERO, BigDecimal::add));
-                                                    } else {
-                                                        items.put("tu" + item.getMes(), item.getTotalUnidad());
-                                                        items.put("tv" + item.getMes(), item.getTotalValor());
-                                                        items.put("totalUnidades", unidades.stream().reduce(0, Integer::sum));
-                                                        items.put("totalValores", valores.stream().reduce(BigDecimal.ZERO, BigDecimal::add));
-                                                    }
-                                                });
-                                        children.add(items);
-                                    })
-                            );
-
-                    children.stream()
-                            .filter(f -> String.valueOf(f.get("key")).equalsIgnoreCase(String.valueOf(header.get("key"))))
-                            .collect(Collectors.toList())
-                            .forEach(c -> children.remove(c));
-
-                    Set<Map<String, Object>> childrenSet = new HashSet<>(children);
-                    header.put("children", childrenSet);
-                    source.add(header);
-                });
 
         return TableStructureDTO.builder()
                 .columns(columns)
@@ -283,7 +331,7 @@ public class EspecialidadServiceImpl implements EspecialidadService {
         return monthDisplay.format(monthParse.parse(month));
     }
 
-    private List<EspecialidadReportResponse> getEspecialidadesReport(EspecialidadByLabRequest request) {
+    private List<EspecialidadReportResponse> getEspecialidadesPorLaboratorioReport(EspecialidadFilterRequest request) {
         List<EspecialidadReportResponse> reports = new ArrayList<>();
         especialidadReportRepository.obtenerAgrupadosPorLaboratorio(request.getEspecialidades(), request.getFechas())
                 .forEach(res -> reports.add(
@@ -298,7 +346,7 @@ public class EspecialidadServiceImpl implements EspecialidadService {
         return reports;
     }
 
-    private List<EspecialidadReportResponse> getOtraEspecialidadesReport(EspecialidadByLabRequest request) {
+    private List<EspecialidadReportResponse> getEspecialidadesReport(EspecialidadFilterRequest request) {
         List<EspecialidadReportResponse> reports = new ArrayList<>();
         especialidadReportRepository.obtenerOtrasEspecialidades(request.getEspecialidades(), request.getFechas())
                 .forEach(res -> reports.add(
@@ -310,6 +358,24 @@ public class EspecialidadServiceImpl implements EspecialidadService {
                                 .descripcionProducto(String.valueOf(res[3]))
                                 .totalUnidad(Integer.parseInt(String.valueOf(res[4])))
                                 .totalValor(new BigDecimal(String.valueOf(res[5])))
+                                .build()
+                ));
+        return reports;
+    }
+
+    private List<EspecialidadReportResponse> getReservasEspecialidadesReport(EspecialidadFilterRequest request) {
+        List<EspecialidadReportResponse> reports = new ArrayList<>();
+        especialidadReportRepository.obtenerReservasEspecialidades(request.getEspecialidades(), request.getFechas())
+                .forEach(res -> reports.add(
+                        EspecialidadReportResponse
+                                .builder()
+                                .keyId(String.valueOf(res[6]))
+                                .especialidad(String.valueOf(res[0]))
+                                .mes(String.valueOf(res[1]))
+                                .reservaSolicitada(Integer.parseInt(String.valueOf(res[2])))
+                                .reservaPagada(Integer.parseInt(String.valueOf(res[3])))
+                                .totalSolicitudes(Integer.parseInt(String.valueOf(res[4])))
+                                .totalPagadas(Integer.parseInt(String.valueOf(res[5])))
                                 .build()
                 ));
         return reports;

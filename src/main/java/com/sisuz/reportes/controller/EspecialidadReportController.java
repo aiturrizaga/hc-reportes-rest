@@ -1,6 +1,6 @@
 package com.sisuz.reportes.controller;
 
-import com.sisuz.reportes.dto.request.EspecialidadByLabRequest;
+import com.sisuz.reportes.dto.request.EspecialidadFilterRequest;
 import com.sisuz.reportes.dto.response.TableStructureDTO;
 import com.sisuz.reportes.service.EspecialidadService;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-@RequestMapping("/v1/reportes/especialidades")
+@RequestMapping("/v1/reportes")
 public class EspecialidadReportController {
 
     private final EspecialidadService especialidadService;
@@ -20,14 +20,19 @@ public class EspecialidadReportController {
         this.especialidadService = especialidadService;
     }
 
-    @PostMapping("/agrupado-por-laboratorio")
-    public ResponseEntity<TableStructureDTO> obtenerAgrupadosPorLaboratorio(@RequestBody EspecialidadByLabRequest request) {
+    @PostMapping("/especialidades")
+    public ResponseEntity<TableStructureDTO> obtenerReporteEspecialidades(@RequestBody EspecialidadFilterRequest request) {
+        return ResponseEntity.ok(especialidadService.obtenerReporteEspecialidades(request));
+    }
+
+    @PostMapping("/especialidades/agrupado-por-laboratorio")
+    public ResponseEntity<TableStructureDTO> obtenerAgrupadosPorLaboratorio(@RequestBody EspecialidadFilterRequest request) {
         return ResponseEntity.ok(especialidadService.obtenerAgrupadosPorLaboratorio(request));
     }
 
-    @PostMapping("/otras-especialidades")
-    public ResponseEntity<TableStructureDTO> obtenerOtrasEspecialidades(@RequestBody EspecialidadByLabRequest request) {
-        return ResponseEntity.ok(especialidadService.obtenerOtrasEspecialidades(request));
+    @PostMapping("/especialidades/reservas")
+    public ResponseEntity<TableStructureDTO> obtenerResrvasEspecialidades(@RequestBody EspecialidadFilterRequest request) {
+        return ResponseEntity.ok(especialidadService.obtenerReservasEspecialidades(request));
     }
 
 }

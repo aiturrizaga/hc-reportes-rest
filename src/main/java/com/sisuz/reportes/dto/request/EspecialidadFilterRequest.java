@@ -9,7 +9,7 @@ import java.util.List;
 @Getter
 @Setter
 @ToString
-public class EspecialidadByLabRequest {
+public class EspecialidadFilterRequest {
     private List<String> fechas;
     private List<String> especialidades;
 }

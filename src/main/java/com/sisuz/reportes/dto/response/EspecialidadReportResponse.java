@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 @ToString
 @Builder
 public class EspecialidadReportResponse {
+    private String keyId;
     private String especialidad;
     private String mes;
     private Integer totalUnidad;
@@ -19,4 +20,9 @@ public class EspecialidadReportResponse {
 
     private String codigoProducto;
     private String descripcionProducto;
+
+    private Integer reservaSolicitada;
+    private Integer reservaPagada;
+    private Integer totalSolicitudes;
+    private Integer totalPagadas;
 }
